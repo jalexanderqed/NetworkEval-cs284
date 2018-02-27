@@ -14,20 +14,22 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 public class MainActivity extends AppCompatActivity implements UpdateListener {
+    public static double lon;
+    public static double lat;
 
     boolean locationStarted = false;
     final int MY_PERMISSION_ACCESS_LOCATION = 0x2313;
-    UpdateLoopTask updateLoop;
+    UpdateNetDataTask updateLoop;
+    DataListener dataListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,11 +38,16 @@ public class MainActivity extends AppCompatActivity implements UpdateListener {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        final Activity me = this;
+        final UpdateListener alsoMe = this;
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                updateLoop = new UpdateNetDataTask(me, alsoMe, getMainActivity().getApplicationContext(), dataListener);
+                updateLoop.execute();
+                Snackbar.make(view, "Started update task", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
@@ -56,22 +63,33 @@ public class MainActivity extends AppCompatActivity implements UpdateListener {
             }
         }
 
-        final Activity me = this;
-        final UpdateListener alsoMe = this;
-        Timer myTimer = new Timer();
-        myTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                updateLoop = new UpdateLoopTask(me, alsoMe, getMainActivity().getApplicationContext());
-                updateLoop.execute();
-            }
-
-        }, 0, 1000);
+        dataListener = new DataListener();
+        final TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        telephonyManager.listen(dataListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
     }
 
     public void updateFields(NetworkData data){
-        TextView freqField = (TextView)findViewById(R.id.freq);
-        freqField.setText(Integer.toString(data.wifiFrequency));
+        ((TextView)findViewById(R.id.wifiFreq)).setText(Integer.toString(data.wifiFrequency));
+        ((TextView)findViewById(R.id.wifiLinkSpeed)).setText(Integer.toString(data.wifiLinkSpeed));
+        ((TextView)findViewById(R.id.wifiRssi)).setText(Integer.toString(data.wifiRssi));
+        ((TextView)findViewById(R.id.wifiSignal)).setText(Integer.toString(data.wifiSignalLevel));
+
+        ((TextView)findViewById(R.id.dataSignal)).setText(Integer.toString(data.dataSignal));
+        ((TextView)findViewById(R.id.dataIsGsm)).setText(Boolean.toString(data.dataIsGsm));
+        ((TextView)findViewById(R.id.dataGsmStrength)).setText(Integer.toString(data.dataGsmStrength));
+        ((TextView)findViewById(R.id.dataCdmaStrength)).setText(Integer.toString(data.dataCdmaDbm));
+        ((TextView)findViewById(R.id.dataEvdoStrength)).setText(Integer.toString(data.dataEvdoDbm));
+        ((TextView)findViewById(R.id.dataLteStrength)).setText(Integer.toString(data.dataLteDbm));
+
+        ((TextView)findViewById(R.id.wifiTcpByteRate)).setText(Double.toString(Math.round(data.wifiTcpByteRate * 100) / 100.0) + " MBps");
+
+        ((TextView)findViewById(R.id.wifiUdpByteRate)).setText(Double.toString(Math.round(data.wifiUdpByteRate * 100) / 100.0) + " MBps");
+        ((TextView)findViewById(R.id.wifiUdpPacketPercent)).setText(Double.toString(Math.round(1000 * data.wifiUdpPacketsReceived / 101.0) / 10.0));
+
+        ((TextView)findViewById(R.id.dataTcpByteRate)).setText(Double.toString(Math.round(data.dataTcpByteRate * 100) / 100.0) + " MBps");
+
+        ((TextView)findViewById(R.id.dataUdpByteRate)).setText(Double.toString(Math.round(data.dataUdpByteRate * 100) / 100.0) + " MBps");
+        ((TextView)findViewById(R.id.dataUdpPacketPercent)).setText(Double.toString(Math.round(1000 * data.dataUdpPacketsReceived / 101.0) / 10.0));
     }
 
     public void startLocation() {
@@ -80,11 +98,14 @@ public class MainActivity extends AppCompatActivity implements UpdateListener {
 
         LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
-                // Called when a new location is found by the location provider.
+                MainActivity.lon = location.getLatitude();
+                MainActivity.lat = location.getLatitude();
+
                 TextView latField = (TextView)findViewById(R.id.lat);
                 TextView lonField = (TextView)findViewById(R.id.lon);
                 latField.setText(Double.toString(location.getLatitude()));
                 lonField.setText(Double.toString(location.getLongitude()));
+                locationOn();
             }
 
             public void onStatusChanged(String provider, int status, Bundle extras) {
