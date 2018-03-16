@@ -14,6 +14,35 @@
         tools:context="ninja.jalexander.networkeval.MainActivity"
         tools:showIn="@layout/activity_main">
 
+        <Space
+            android:layout_width="1dp"
+            android:layout_height="30dp" />
+        <Space
+            android:layout_width="1dp"
+            android:layout_height="30dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Status: " />
+
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ready"
+                android:textColor="@color/ready" />
+        </LinearLayout>
+
+        <Space
+            android:layout_width="1dp"
+            android:layout_height="30dp" />
+
         <TextView
             style="@style/Base.TextAppearance.AppCompat.Title"
             android:layout_width="wrap_content"
@@ -28,7 +57,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Status: " />
+                android:text="GPS Status: " />
 
             <TextView
                 android:id="@+id/loc_status"
@@ -333,6 +362,23 @@
                 android:text="" />
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ping: " />
+
+            <TextView
+                android:id="@+id/wifiPing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="" />
+        </LinearLayout>
+
         <Space
             android:layout_width="1dp"
             android:layout_height="30dp" />
@@ -399,6 +445,23 @@
 
             <TextView
                 android:id="@+id/dataUdpPacketPercent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ping: " />
+
+            <TextView
+                android:id="@+id/dataPing"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="" />

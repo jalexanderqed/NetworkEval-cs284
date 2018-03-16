@@ -3,4 +3,6 @@
     <string name="action_settings">Settings</string>
     <string name="ready">READY</string>
     <string name="unready">NOT READY</string>
+    <string name="failed">FAILED</string>
+    <string name="working">WORKING</string>
 </resources>

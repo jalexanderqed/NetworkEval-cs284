@@ -18,6 +18,7 @@ public class Util {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }

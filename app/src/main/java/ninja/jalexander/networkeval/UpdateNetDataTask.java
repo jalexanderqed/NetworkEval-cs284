@@ -5,6 +5,7 @@ import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
+import android.support.design.widget.Snackbar;
 import android.telephony.SignalStrength;
 import android.util.Log;
 
@@ -24,6 +25,8 @@ public class UpdateNetDataTask extends AsyncTask<Void, Void, NetworkData> {
     private Context context;
     private DataListener dataListener;
 
+    boolean status = false;
+
     public UpdateNetDataTask(Activity p, UpdateListener l, Context c, DataListener dl) {
         parent = p;
         listener = l;
@@ -36,14 +39,45 @@ public class UpdateNetDataTask extends AsyncTask<Void, Void, NetworkData> {
         NetworkData data = new NetworkData();
         WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 
+        while (!wifiManager.isWifiEnabled()) {
+            wifiManager.setWifiEnabled(true);
+            Util.wait(5000);
+        }
+        Log.d("STATUS", "Enabled wifi");
+
         updateWifi(data, wifiManager);
         Log.d("STATUS", "Updated wi-fi");
 
-        while (!wifiManager.isWifiEnabled()) {
-            wifiManager.setWifiEnabled(true);
-            Util.wait(100);
+        if(data.wifiFrequency == -1){
+            Log.d("ERROR", "Frequency -1, Wi-Fi FAILED");
+            return null;
         }
-        Log.d("STATUS", "Enabled wifi");
+
+        Log.d("STATUS", "Started updating TCP");
+        try {
+            TCPClient.runDiagnostic(data, true);
+        } catch (Exception e) {
+            Log.e("ERROR", e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+        Log.d("STATUS", "Finished updating TCP");
+
+        Log.d("STATUS", "Started updating UDP");
+        try {
+            UDPClient.runDiagnostic(data, true);
+        } catch (Exception e) {
+            Log.e("ERROR", e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+        Log.d("STATUS", "Finished updating UDP");
+
+        while (wifiManager.isWifiEnabled()) {
+            wifiManager.setWifiEnabled(false);
+            Util.wait(1000);
+        }
+        Log.d("STATUS", "Disabled wifi");
 
         if (dataListener.lastStrength != null) {
             updateData(data);
@@ -51,25 +85,23 @@ public class UpdateNetDataTask extends AsyncTask<Void, Void, NetworkData> {
         }
 
         Log.d("STATUS", "Started updating TCP");
-        TCPClient.runDiagnostic(data, true);
-        Log.d("STATUS", "Finished updating TCP");
-
-        Log.d("STATUS", "Started updating UDP");
-        UDPClient.runDiagnostic(data, true);
-        Log.d("STATUS", "Finished updating UDP");
-
-        while (wifiManager.isWifiEnabled()) {
-            wifiManager.setWifiEnabled(false);
-            Util.wait(100);
+        try {
+            TCPClient.runDiagnostic(data, false);
+        } catch (Exception e) {
+            Log.e("ERROR", e.getMessage());
+            e.printStackTrace();
+            return null;
         }
-        Log.d("STATUS", "Disabled wifi");
-
-        Log.d("STATUS", "Started updating TCP");
-        TCPClient.runDiagnostic(data, false);
         Log.d("STATUS", "Finished updating TCP");
 
         Log.d("STATUS", "Started updating UDP");
-        UDPClient.runDiagnostic(data, false);
+        try {
+            UDPClient.runDiagnostic(data, false);
+        } catch (Exception e) {
+            Log.e("ERROR", e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
         Log.d("STATUS", "Finished updating UDP");
 
         wifiManager.setWifiEnabled(true);
@@ -99,6 +131,7 @@ public class UpdateNetDataTask extends AsyncTask<Void, Void, NetworkData> {
                 data.wifiUdpPacketRate + "," +
                 data.wifiUdpBytesReceived + "," +
                 data.wifiUdpByteRate + "," +
+                data.wifiPing + "," +
                 data.dataTcpDeltaTime + "," +
                 data.dataTcpBytesReceived + "," +
                 data.dataTcpByteRate + "," +
@@ -106,7 +139,8 @@ public class UpdateNetDataTask extends AsyncTask<Void, Void, NetworkData> {
                 data.dataUdpPacketsReceived + "," +
                 data.dataUdpPacketRate + "," +
                 data.dataUdpBytesReceived + "," +
-                data.dataUdpByteRate;
+                data.dataUdpByteRate + "," +
+                data.dataPing;
 
         DataPoster.post(resString);
 

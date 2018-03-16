@@ -26,6 +26,7 @@ public class NetworkData {
     public double wifiUdpPacketRate;
     public int wifiUdpBytesReceived;
     public double wifiUdpByteRate;
+    public double wifiPing;
 
     public long dataTcpDeltaTime;
     public int dataTcpBytesReceived;
@@ -36,4 +37,5 @@ public class NetworkData {
     public double dataUdpPacketRate;
     public int dataUdpBytesReceived;
     public double dataUdpByteRate;
+    public double dataPing;
 }

@@ -38,6 +38,7 @@ public class DataPoster {
 
             writer.close();
             out.close();
+            connection.getInputStream().close();
         } catch (IOException e) {
             System.err.println(e.getMessage());
             e.printStackTrace();

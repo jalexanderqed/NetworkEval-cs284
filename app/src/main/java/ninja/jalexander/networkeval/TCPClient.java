@@ -7,7 +7,7 @@ class TCPClient {
     private final static String serverIP = "13.57.60.32";
     private final static int serverPort = 6789;
 
-    public static void runDiagnostic(NetworkData netData, boolean isWifi) {
+    public static void runDiagnostic(NetworkData netData, boolean isWifi) throws Exception {
         byte[] inBuff = new byte[64000];
         int bytesRead;
         int bytesReceived = 0;
@@ -29,9 +29,6 @@ class TCPClient {
                 bytesRead = in.read(inBuff, 0, inBuff.length);
                 bytesReceived += bytesRead;
             } while (bytesRead != -1);
-        } catch (IOException ex) {
-            System.err.println(ex.getMessage());
-            ex.printStackTrace();
         }
 
         if (started) endTime = System.nanoTime();

@@ -10,70 +10,104 @@ class UDPClient {
     private final static int serverPort = 9876;
     private static final int retryCount = 1;
 
-    public static void runDiagnostic(NetworkData netData, boolean isWifi) {
-        try (DatagramSocket clientSocket = new DatagramSocket()) {
-            InetAddress IPAddress = InetAddress.getByName(serverIP);
-            String sentence = "Gimme dem kitties";
-            byte[] sendData = sentence.getBytes();
+    public static void runDiagnostic(NetworkData netData, boolean isWifi) throws Exception {
+        int packetsReceived = 0;
+        long nanoDiff = 0;
+        double bRate = 0;
+        double pRate = 0;
+        int bytesReceived = 0;
+        byte[] finishBytes = "messiii".getBytes();
 
-            for (int i = 0; i < retryCount; i++) {
-                DatagramPacket sendPacket = new DatagramPacket(sentence.getBytes(), sendData.length, IPAddress, serverPort);
-                clientSocket.send(sendPacket);
-            }
+        InetAddress IPAddress = InetAddress.getByName(serverIP);
+        String sentence = "Gimme dem kitties";
+        int waitTime = 15;
+        double receivedPerc = 0.0;
+        double threshold = 0.8;
 
-            boolean receiving = true;
-            int packetsReceived = 0;
-            int bytesReceived = 0;
+        double ping = Ping.getPing();
 
-            boolean started = false;
-            long startTime = 0;
-            long endTime = 0;
-
-            while (receiving) {
-                byte[] receiveData = new byte[64000];
-
-                if (!started) {
-                    started = true;
-                    startTime = System.nanoTime();
+        while (receivedPerc < threshold) {
+            try (DatagramSocket clientSocket = new DatagramSocket()) {
+                waitTime = waitTime + 5;
+                String waitString = "" + waitTime;
+                byte[] sendData = waitString.getBytes();
+                for (int i = 0; i < retryCount; i++) {
+                    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, serverPort);
+                    clientSocket.send(sendPacket);
                 }
 
-                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-                clientSocket.receive(receivePacket);
+                boolean receiving = true;
+                packetsReceived = 0;
+                bytesReceived = 0;
 
-                packetsReceived++;
-                bytesReceived += receivePacket.getLength();
+                boolean started = false;
+                long startTime = 0;
+                long endTime = 0;
 
-                if (receivePacket.getLength() == sendData.length) {
-                    byte[] received = receivePacket.getData();
-                    if (Util.bytesEqual(received, sendData, sendData.length)) {
-                        receiving = false;
+                clientSocket.setSoTimeout(20000);
+
+                while (receiving) {
+                    byte[] receiveData = new byte[64000];
+
+                    if (!started) {
+                        started = true;
+                        startTime = System.nanoTime();
+                    }
+
+                    DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+                    try {
+                        clientSocket.receive(receivePacket);
+                    }
+                    catch(SocketTimeoutException e){
+                        Log.e("ERROR", "UDP timed out");
                         endTime = System.nanoTime();
+                        packetsReceived = 0;
+                        receiving = false;
+                        break;
+                    }
+
+                    packetsReceived++;
+                    bytesReceived += receivePacket.getLength();
+
+                    if (receivePacket.getLength() == finishBytes.length) {
+                        byte[] received = receivePacket.getData();
+                        if (Util.bytesEqual(received, finishBytes, finishBytes.length)) {
+                            receiving = false;
+                            endTime = System.nanoTime();
+                        }
                     }
                 }
-            }
 
-            long nanoDiff = endTime - startTime;
-            double bRate = ((double) bytesReceived) / (nanoDiff * 1e-9);
-            double pRate = ((double) packetsReceived) / (nanoDiff * 1e-9);
-            bRate /= 1e6;
+                nanoDiff = endTime - startTime;
+                bRate = ((double) bytesReceived) / (nanoDiff * 1e-9);
+                pRate = ((double) packetsReceived) / (nanoDiff * 1e-9);
+                bRate /= 1e6;
 
-            if(isWifi) {
-                netData.wifiUdpDeltaTime = nanoDiff;
-                netData.wifiUdpPacketsReceived = packetsReceived;
-                netData.wifiUdpPacketRate = pRate;
-                netData.wifiUdpBytesReceived = bytesReceived;
-                netData.wifiUdpByteRate = bRate;
+                receivedPerc = packetsReceived / 101.0; //hardcoded packet num
+
+                Log.d("DEBUG", "Received: " + receivedPerc);
+                if (receivedPerc < threshold) {
+                    Util.wait(2000);
+                }
             }
-            else{
-                netData.dataUdpDeltaTime = nanoDiff;
-                netData.dataUdpPacketsReceived = packetsReceived;
-                netData.dataUdpPacketRate = pRate;
-                netData.dataUdpBytesReceived = bytesReceived;
-                netData.dataUdpByteRate = bRate;
-            }
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-            e.printStackTrace();
+        }
+        Log.d("DEBUG", "Final wait time: " + waitTime);
+        Log.d("DEBUG", "Final received percentage: " + receivedPerc);
+
+        if (isWifi) {
+            netData.wifiUdpDeltaTime = nanoDiff;
+            netData.wifiUdpPacketsReceived = packetsReceived;
+            netData.wifiUdpPacketRate = pRate;
+            netData.wifiUdpBytesReceived = bytesReceived;
+            netData.wifiUdpByteRate = bRate;
+            netData.wifiPing = ping;
+        } else {
+            netData.dataUdpDeltaTime = nanoDiff;
+            netData.dataUdpPacketsReceived = packetsReceived;
+            netData.dataUdpPacketRate = pRate;
+            netData.dataUdpBytesReceived = bytesReceived;
+            netData.dataUdpByteRate = bRate;
+            netData.dataPing = ping;
         }
     }
 }

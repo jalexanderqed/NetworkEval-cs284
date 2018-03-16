@@ -31,6 +31,28 @@ public class MainActivity extends AppCompatActivity implements UpdateListener {
     UpdateNetDataTask updateLoop;
     DataListener dataListener;
 
+    boolean status = false;
+
+    final static int FAILED = 0;
+    final static int READY = 1;
+    final static int WORKING = 2;
+
+    public void updateStatus(int status){
+        TextView field = (TextView)findViewById(R.id.status);
+        if(status == READY){
+            field.setText(R.string.ready);
+            field.setTextColor(getColor(R.color.ready));
+        }
+        else if(status == FAILED){
+            field.setText(R.string.failed);
+            field.setTextColor(getColor(R.color.unready));
+        }
+        else if(status == WORKING){
+            field.setText(R.string.working);
+            field.setTextColor(getColor(R.color.working));
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements UpdateListener {
                 updateLoop.execute();
                 Snackbar.make(view, "Started update task", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
+                updateStatus(WORKING);
             }
         });
 
@@ -69,6 +92,13 @@ public class MainActivity extends AppCompatActivity implements UpdateListener {
     }
 
     public void updateFields(NetworkData data){
+        if(data == null){
+            Snackbar.make(findViewById(R.id.lat), "Update task FAILED", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            updateStatus(FAILED);
+            return;
+        }
+        updateStatus(READY);
         ((TextView)findViewById(R.id.wifiFreq)).setText(Integer.toString(data.wifiFrequency));
         ((TextView)findViewById(R.id.wifiLinkSpeed)).setText(Integer.toString(data.wifiLinkSpeed));
         ((TextView)findViewById(R.id.wifiRssi)).setText(Integer.toString(data.wifiRssi));
@@ -85,11 +115,16 @@ public class MainActivity extends AppCompatActivity implements UpdateListener {
 
         ((TextView)findViewById(R.id.wifiUdpByteRate)).setText(Double.toString(Math.round(data.wifiUdpByteRate * 100) / 100.0) + " MBps");
         ((TextView)findViewById(R.id.wifiUdpPacketPercent)).setText(Double.toString(Math.round(1000 * data.wifiUdpPacketsReceived / 101.0) / 10.0));
+        ((TextView)findViewById(R.id.wifiPing)).setText(Double.toString(data.wifiPing));
 
         ((TextView)findViewById(R.id.dataTcpByteRate)).setText(Double.toString(Math.round(data.dataTcpByteRate * 100) / 100.0) + " MBps");
 
         ((TextView)findViewById(R.id.dataUdpByteRate)).setText(Double.toString(Math.round(data.dataUdpByteRate * 100) / 100.0) + " MBps");
         ((TextView)findViewById(R.id.dataUdpPacketPercent)).setText(Double.toString(Math.round(1000 * data.dataUdpPacketsReceived / 101.0) / 10.0));
+        ((TextView)findViewById(R.id.dataPing)).setText(Double.toString(data.dataPing));
+
+        Snackbar.make(findViewById(R.id.lat), "Finished update task", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
     }
 
     public void startLocation() {
